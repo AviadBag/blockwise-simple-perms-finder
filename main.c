@@ -69,48 +69,38 @@ bool check_plus_minus(permutation block1, permutation block2)
     return (max1 < min2) || (min1 > max2);
 }
 
+bool check_block_decomposition(permutation block)
+{
+    // Seperator represents after what index to seperate
+    for (int seperator = 0; seperator < block.length - 1; seperator++)
+    {
+        permutation block1 = {seperator+1, block.data};
+        permutation block2 = {block.length - block1.length, block.data + seperator + 1};
+
+        if (is_block(block1) && is_block(block2))
+            if (check_plus_minus(block1, block2))
+                return true;
+    }
+
+    return false;
+}
+
 bool check_perm(char* perm)
 {
-    // printf("----- CHECKING FOR PERMUTATION ------\n");
-    // print_perm(perm, N);
-    int old_i;
     for (int i = 0; i < N; i++)
     {
-        old_i = i;
-        permutation first_block;
-        first_block.length = 0;
-        for (int j = i; j < N; j++)
+        for (int j = i+1; j < N; j++)
         {
             int length = j - i + 1;
-            if (length == N)
-                continue; // The entire permutation is not considered a block
 
             permutation sub_perm;
             sub_perm.data = perm + i;
             sub_perm.length = length;
+            
             if (is_block(sub_perm))
-            {
-                if (first_block.length > 0)
-                {
-                    // We found two blocks in a row
-                    permutation entire_block = {first_block.length + sub_perm.length, first_block.data};
-                    if (check_plus_minus(first_block, sub_perm) && is_block(entire_block)) return false;
-                }
-                else
-                {
-                    first_block = sub_perm;
-                    old_i = i;
-                    i = j+1;
-                }
-            }
+                if (check_block_decomposition(sub_perm)) return false;
         }
-        i = old_i;
-    }    
-
-    permutation s_perm;
-    s_perm.length = N;
-    s_perm.data = perm;
-    print_perm(s_perm);
+    }
     
     return true;
 }
