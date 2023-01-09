@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <pthread.h>
+#include <sys/sysinfo.h>
+#include <inttypes.h>
 
 #define N 10
 
@@ -9,6 +12,12 @@ typedef struct t_permutation
     int length;
     char* data;
 } permutation;
+
+typedef struct t_thread_data
+{
+    uintmax_t from;
+    uintmax_t to;
+} thread_data;
 
 void print_perm(permutation perm)
 {
@@ -22,9 +31,9 @@ void print_perm(permutation perm)
     }
 }
 
-unsigned long factorial(int n)
+uintmax_t factorial(int n)
 {
-    unsigned long result = 1;
+    uintmax_t result = 1;
     for (int i = 1; i <= n; i++)
         result *= i;
 
@@ -132,20 +141,75 @@ void get_permutation(int i, char* perm)
             perm[k]++;
 }
 
-int main()
+// arg is of type thread_data
+void* check_permutations(void* arg)
 {
-    unsigned long no_of_perms = factorial(N);
-    printf("There are %lu permutations for n=%d\n", no_of_perms, N);
-
-    unsigned long result = 0;
+    thread_data* data = (thread_data*) arg;
+    uintmax_t no_of_perms = data->to - data->from + 1;
+    uintmax_t* result = malloc(sizeof(uintmax_t));
+    *result = 0;
     char perm[N];
-    for (unsigned long i = 0; i < no_of_perms; i++)
+    for (uintmax_t i = data->from; i <= data->to; i++)
     {
         get_permutation(i, perm);
-        if (check_perm(perm)) result++;
+        if (check_perm(perm)) (*result)++;
     }
 
-    printf("RESULT=%lu\n", result);
+    printf("RESULT=%ju\n", *result);
+    return result;
+}
+
+int main()
+{
+    uintmax_t no_of_perms = factorial(N);
+    printf("There are %ju permutations for n=%d\n", no_of_perms, N);
+
+    // We are leaving one core free
+    int threads = get_nprocs() - 1;
+    printf("Running on %d cores\n", threads);
+
+    if (no_of_perms < threads)
+    {
+        printf("You have more threads than perms.. Probably N is TOO low\n");
+        return 0;
+    }
+
+    uintmax_t perms_per_thread = no_of_perms / threads;
+    printf("%ju perms per thread\n", perms_per_thread);
     
+    uintmax_t done = 0;
+    pthread_t* tids = calloc(threads, sizeof(pthread_t));
+
+    // Create a thread for every core
+    uintmax_t from = 0;
+    for (int i = 0; i < threads; i++, from += perms_per_thread)
+    {
+        thread_data* data = malloc(sizeof(thread_data));
+        data->from = from;
+        data->to = from + perms_per_thread - 1;
+        done += perms_per_thread;
+        pthread_create(tids + i, NULL, check_permutations, data);
+    }
+
+    // Wait for all the threads and get results
+    uintmax_t result = 0;
+    for (int i = 0; i < threads; i++)
+    {
+        uintmax_t* return_value;
+        pthread_join(tids[i], (void**) &return_value);
+        result += *return_value;
+        free(return_value);
+    }
+
+    // Do leftovers
+    printf("There are left %ju perms to check\n", no_of_perms - done);
+    thread_data data = {from: done, to: no_of_perms-1};
+    uintmax_t* r = check_permutations(&data);
+    result += *r;
+    free(r);
+
+    printf("\n----------------\nFINAL RESULT=%ju\n", result);
+
+    free(tids);
     return 0;
 }
