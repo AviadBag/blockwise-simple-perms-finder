@@ -1,4 +1,4 @@
-SOURCE := main.c perms.c perms.h common.h
+SOURCE := main.c
 EXEC   := main.out
 
 CC       := gcc

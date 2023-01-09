@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
-#include "perms.h"
-#include "common.h"
+#define N 10
 
 typedef struct t_permutation
 {
@@ -105,12 +105,47 @@ bool check_perm(char* perm)
     return true;
 }
 
+// Puts in the given array the [i] permutation of length N
+// Alerted from https://stackoverflow.com/a/7919887
+void get_permutation(int i, char* perm)
+{
+   int j, k = 0;
+   int fact[N];
+
+   // compute factorial numbers
+   fact[k] = 1;
+   while (++k < N)
+      fact[k] = fact[k - 1] * k;
+
+   // compute factorial code
+   for (k = 0; k < N; ++k)
+   {
+      perm[k] = i / fact[N - 1 - k] + 1;
+      i = i % fact[N - 1 - k];
+   }
+
+   // readjust values to obtain the permutation
+   // start from the end and check if preceding values are lower
+   for (k = N - 1; k > 0; --k)
+      for (j = k - 1; j >= 0; --j)
+         if (perm[j] <= perm[k])
+            perm[k]++;
+}
+
 int main()
 {
     unsigned long no_of_perms = factorial(N);
     printf("There are %lu permutations for n=%d\n", no_of_perms, N);
 
-    printf("RESULT=%lu\n", loop_perms(check_perm));
+    unsigned long result = 0;
+    char perm[N];
+    for (unsigned long i = 0; i < no_of_perms; i++)
+    {
+        get_permutation(i, perm);
+        if (check_perm(perm)) result++;
+    }
+
+    printf("RESULT=%lu\n", result);
     
     return 0;
 }
