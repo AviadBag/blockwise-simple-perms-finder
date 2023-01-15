@@ -5,7 +5,7 @@
 #include <sys/sysinfo.h>
 #include <inttypes.h>
 
-#define N 10
+#define N 17
 
 typedef struct t_permutation
 {
@@ -21,13 +21,14 @@ typedef struct t_thread_data
 
 void print_perm(permutation perm)
 {
+    printf("[%d]: ", perm.length);
     for (int i = 0; i < perm.length; i++)
     {
         if (i < perm.length-1)
-            printf("%d, ", perm.data[i]);
+            printf("[%d]=%d, ", i, perm.data[i]);
         else
             
-            printf("%d\n", perm.data[i]);
+            printf("[%d]= %d\n", i, perm.data[i]);
     }
 }
 
@@ -110,16 +111,16 @@ bool check_perm(char* perm)
                 if (check_block_decomposition(sub_perm)) return false;
         }
     }
-    
+
     return true;
 }
 
 // Puts in the given array the [i] permutation of length N
 // Alerted from https://stackoverflow.com/a/7919887
-void get_permutation(int i, char* perm)
+void get_permutation(uintmax_t i, char* perm)
 {
    int j, k = 0;
-   int fact[N];
+   uintmax_t fact[N];
 
    // compute factorial numbers
    fact[k] = 1;
